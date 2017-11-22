@@ -1,0 +1,118 @@
+<html>
+  <body>
+    <script src="eth-lightwallet/dist/lightwallet.min.js"></script>
+    <script type="text/javascript" src="eth-lightwallet/node_modules/web3/dist/web3.js"></script>
+    <script type="text/javascript" src="eth-lightwallet/node_modules/hooked-web3-provider/build/hooked-web3-provider.js"></script>
+    <script type="text/javascript" src="eth-lightwallet/node_modules/async/lib/async.js"></script>
+
+    <script>
+
+      var web3 = new Web3();
+      var global_keystore;
+
+      function setWeb3Provider(keystore) {
+        var web3Provider = new HookedWeb3Provider({
+          //host: "https://rinkeby.infura.io/",
+          host: "http://localhost:8545/",
+          transaction_signer: keystore
+        });
+
+        web3.setProvider(web3Provider);
+      }
+
+      function newAddresses(password) {
+        
+        if (password == '') {
+          password = prompt('Enter password to retrieve addresses', 'Password');
+        }
+
+        global_keystore.keyFromPassword(password, function(err, pwDerivedKey) {
+
+        // display your seed to debug
+        var seed = global_keystore.getSeed(pwDerivedKey);
+        document.getElementById('addr').innerHTML = 'Your seed: ' + seed
+
+        // display your address
+        global_keystore.generateNewAddress(pwDerivedKey, 1);
+        var addresses = global_keystore.getAddresses();
+        document.getElementById('addr').innerHTML += '<br>Your address: ' + addresses
+
+      })
+      }
+
+      function setSeed() {
+        var password = prompt('Enter Password to encrypt your seed', 'Password');
+
+      lightwallet.keystore.createVault({
+        password: password,
+        seedPhrase: document.getElementById('seed').value,
+        //random salt 
+        hdPathString: "m/0'/0'/0'"
+      }, function (err, ks) {
+
+        global_keystore = ks
+
+        document.getElementById('seed').value = ''
+        
+        newAddresses(password);
+        setWeb3Provider(global_keystore);
+
+        })
+      }
+
+      function newWallet() {
+        var extraEntropy = document.getElementById('userEntropy').value;
+        document.getElementById('userEntropy').value = '';
+        var randomSeed = lightwallet.keystore.generateRandomSeed(extraEntropy);
+
+        var infoString = 'Your new wallet seed is: "' + randomSeed + 
+          '". Please write it down on paper or in a password manager, you will need it to access your wallet. Do not let anyone see this seed or they can take your Ether. ' +
+          'Please enter a password to encrypt your seed while in the browser.'
+        var password = prompt(infoString, 'Password');
+
+
+      lightwallet.keystore.createVault({
+        password: password,
+        seedPhrase: randomSeed,
+        //random salt 
+        hdPathString: "m/0'/0'/0'"
+      }, function (err, ks) {
+
+        global_keystore = ks
+                
+        newAddresses(password);
+        setWeb3Provider(global_keystore);
+        
+        })
+      }
+
+      function showSeed() {
+        var password = prompt('Enter password to show your seed. Do not let anyone else see your seed.', 'Password');
+
+        global_keystore.keyFromPassword(password, function(err, pwDerivedKey) {
+        var seed = global_keystore.getSeed(pwDerivedKey);
+        alert('Your seed is: "' + seed + '". Please write it down.');
+        });
+      }
+
+      function signData() {
+
+        
+
+
+      }
+
+
+    </script>
+    <h1>ClientWallet</h1>
+      
+        <h2>1. Create/Load Wallet</h2>
+            <div><input type="text" id="userEntropy" placeholder="Type random text to generate entropy" size="50"></input><button onclick="newWallet()">Create New Wallet</button><button onclick="showSeed()">Show Seed</button></div>
+            <div><input type="text" id="seed" value="" size="50"></input><button onclick="setSeed()"> Restore wallet from Seed</button></div>
+            <div id="addr"></div>
+
+        <h2>2. Sign raw tx</h2>
+          <div><input type="text" id="data" placeholder="Type data to sign" size="50"></input><button onclick="signData()">Sign data with your private key</button>
+
+  </body>
+</html>

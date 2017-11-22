@@ -1,0 +1,100 @@
+<!doctype html>
+<htmp lang="en">
+    <head>
+        <title>StampServer</title>
+        <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+        <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js">
+        <script type="text/javascript" src="https://rawgit.com/ethereum/web3.js/develop/dist/web3.min.js"></script>
+        <script type="text/javascript" src="https://rawgit.com/ConsenSys/eth-lightwallet/master/dist/lightwallet.min.js"></script>
+    </head>
+    <body>
+
+        <div class="header">
+            <h3>Ethtx</h3>
+        </div>
+        <div class="jumbotron">
+            <!-- <button id="button_generate_raw">Generate raw tx</button> -->
+
+            <input id="input" type="test">
+            <button id="button_set">Send x eth from local to remote</button>
+            
+            <blockquote id="output"></blockquote>
+
+            <i id="output_balance"></i>
+
+            <i id="block"></i>
+        </div>
+
+    	<script>
+            // MY DATA
+            var gethNode = "http://localhost:8545"
+            var data = "Hello GVA!"
+            //var privateKey = new Buffer('aa73b5c98e60d589e71ce7cff59c02f82e12c7ce676ee356da8e058a285ccd61', 'hex')
+
+            
+
+            var web3 = new Web3(new Web3.providers.HttpProvider(gethNode)) // devchain->8544, testrpc->8545
+            console.log(web3);
+            web3.eth.defaultAccount = web3.eth.accounts[0] // Need default account, unlocked with funds
+            local = web3.eth.accounts[0]
+            remote = "0xf734e65a97c7e5ca5e5255d91f236751a6649d0b"
+            
+            var balance = web3.eth.getBalance(web3.eth.defaultAccount)
+            console.log("Coinbase= " + web3.eth.defaultAccount + " | Balance= " + balance.toString(10) )
+
+    		var input = document.getElementById('input')
+			var button_generate_raw = document.getElementById('button_generate_raw')
+            var button_set = document.getElementById('button_set')
+			var output = document.getElementById('output')
+            var output_balance = document.getElementById('output_balance')
+            var block = document.getElementById('block')
+
+
+            // Start watching greeter value
+            output.innerHTML = "Start watching blockchain..."
+
+            filter = web3.eth.filter('latest');
+            filter.watch(function() {
+                block.innerHTML = 'Just mined block #' + web3.eth.getBlock('latest', true).number
+                localB = web3.eth.getBalance(local)
+                remoteB = web3.eth.getBalance(remote)
+
+                output_balance.innerHTML = "Local address: " + local + " | Balance= " + localB.toString(10) + "<br />"
+                output_balance.innerHTML += "Remote address: " + remote + " | Balance= " + remoteB.toString(10) + "<br />" + "<br />"
+    
+            });
+        
+            // Register a new value
+            button_set.addEventListener('click', function(){
+                
+                tx = web3.eth.sendTransaction({from:local, to:remote, value: web3.toWei(input.value, "ether"), data: data})
+                output.innerHTML = "Sending transaction " + tx + " with data "+ data + " and waiting result..."
+                console.log(web3.eth.getTransaction(tx))
+
+
+                filter = web3.eth.filter('latest');
+                filter.watch(function() {        
+                   if (typeof tx !== 'undefined') {
+                        blockNb = web3.eth.getTransaction(tx).blockNumber
+                        inputH = web3.eth.getTransaction(tx).input
+                        input = web3.toAscii(inputH).substr(2);
+                        console.log(web3.eth.getTransaction(tx))
+                        if (blockNb > 0) {     
+                            output.innerHTML = tx + " <b>mined in block #" + blockNb + " with data: '" + input +"'</b>"
+                            filter.stopWatching()
+                        }
+                        else { output.innerHTML = tx + " not mined" }
+                    }
+                }) 
+
+
+
+            })
+
+            //button_generate_raw.addEventListener('click', function(){
+            //})
+
+    	</script>
+
+    </body>
+</html>
